@@ -71,6 +71,8 @@ var WLRemoteObjectByClassByPk = {},
     id              _delegate @accessors(property=delegate);
 
     CPUndoManager   undoManager @accessors;
+
+    BOOL            payloadPadding;
 }
 
 + (Object)_objectsByPk
@@ -155,10 +157,16 @@ var WLRemoteObjectByClassByPk = {},
     ];
 }
 
++ (CPString)remoteType
+{
+    return "";
+}
+
 - (void)init
 {
     if (self = [super init])
     {
+        payloadPadding = YES;
         _shouldAutoSave = YES;
         _remoteProperties = [CPSet set];
         _propertyLastModified = {};
@@ -586,7 +594,16 @@ var WLRemoteObjectByClassByPk = {},
             return;
         }
 
-        [anAction setPayload:[self asPostJSObject]];
+        if (payloadPadding && [[self class] remoteType])
+        {
+            var payloadDict = [[CPDictionary alloc] init];
+            [payloadDict setObject:[self asPostJSObject] forKey:[[self class] remoteType]];
+            [anAction setPayload:payloadDict];
+        }
+        else
+        {
+            [anAction setPayload:[self asPostJSObject]];
+        }
         // Assume the action will succeed or retry until it does.
         [self setLastSyncedAt:[CPDate date]];
     }
@@ -612,7 +629,16 @@ var WLRemoteObjectByClassByPk = {},
         }
 
         [anAction setMessage:"Saving " + [self description]];
-        [anAction setPayload:[self asPostJSObject]];
+        if (payloadPadding && [[self class] remoteType])
+        {
+            var payloadDict = [[CPDictionary alloc] init];
+            [payloadDict setObject:[self asPostJSObject] forKey:[[self class] remoteType]];
+            [anAction setPayload:payloadDict];
+        }
+        else
+        {
+            [anAction setPayload:[self asPostJSObject]];
+        }
         // Assume the action will succeed or retry until it does.
         [self setLastSyncedAt:[CPDate date]];
         [anAction setPath:[self remotePath] + "/" + pk];

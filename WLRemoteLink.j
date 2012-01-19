@@ -82,7 +82,9 @@ WLLoginActionDidFailNotification        = "WLLoginDidFailNotification";
     BOOL        _retryOneAction;
     int         state @accessors;
 
-    CPString     authorizationHeader @accessors;
+    BOOL        useURLAuthentication @accessors;
+    CPString    authenticationToken @accessors;
+    CPString    authorizationHeader @accessors;
 }
 
 + (void)setDefaultBaseURL:(CPString)anApiUrl
@@ -118,6 +120,7 @@ WLLoginActionDidFailNotification        = "WLLoginDidFailNotification";
         shouldFlushActions = NO;
         actionQueue = [];
         baseUrl = DefaultBaseUrl;
+        useURLAuthentication = NO;
     }
 
     return self;
@@ -654,6 +657,11 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
             CPLog.error("Received error code " + code);
         }
     }
+
+    if ([_delegate respondsToSelector:@selector(remoteAction:didReceiveResponse:)])
+    {
+        [_delegate remoteAction:self didReceiveResponse:aResponse];
+    }
 }
 
 - (void)connection:(CPURLConnection)aConnection didReceiveData:(CPString)data
@@ -729,7 +737,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
             }
             else
             {
-                CPLog.error("Unexpected data: "+data);
+                CPLog.error("Unexpected data: "+ data);
                 error = 500;
             }
         }
@@ -777,11 +785,18 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
 
 - (CPString)fullPath
 {
+    urlAuthenticationToken = "";
+
+    if ([[WLRemoteLink sharedRemoteLink] authenticationToken])
+    {
+        urlAuthenticationToken = "?auth_token=" + [[WLRemoteLink sharedRemoteLink] authenticationToken];
+        console.log(urlAuthenticationToken);
+    }
     var baseUrl = [[WLRemoteLink sharedRemoteLink] baseUrl];
     if (path)
-        return baseUrl + path;
+        return baseUrl + path + urlAuthenticationToken;
     else
-        return baseUrl;
+        return baseUrl + urlAuthenticationToken;
 }
 
 - (CPString)description
