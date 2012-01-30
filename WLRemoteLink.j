@@ -642,6 +642,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
         [request setValue:authorizationHeader forHTTPHeaderField:@"Authorization"];
 
     connection = [CPURLConnection connectionWithRequest:request delegate:self];
+    connection._isLocalFileConnection = false;
 }
 
 - (void)connection:(CPURLConnection)aConnection didReceiveResponse:(CPURLResponse)aResponse
