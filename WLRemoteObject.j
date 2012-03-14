@@ -246,6 +246,7 @@ var WLRemoteObjectByClassByPk = {},
                 remotePkName = [pkProperty remoteName];
             if (js[remotePkName] !== undefined)
             {
+
                 var value = js[remotePkName];
                 if ([pkProperty valueTransformer])
                     value = [[pkProperty valueTransformer] transformedValue:value];
@@ -261,8 +262,8 @@ var WLRemoteObjectByClassByPk = {},
                 }
             }
         }
-    
-        
+
+
         // Check if new object is a new representation of remote object, or a complete new on it self.
         if (js[remotePkName] === undefined)
         {
@@ -271,8 +272,8 @@ var WLRemoteObjectByClassByPk = {},
             js[remotePkName] = new ObjectId().toString();
         }
         [self updateFromJson:js];
-        
-        
+
+
         _suppressRemotePropertiesObservation = NO;
         [self activateRemotePropertiesObservation];
     }
@@ -342,8 +343,15 @@ var WLRemoteObjectByClassByPk = {},
     {
         var before = [change valueForKey:CPKeyValueChangeOldKey],
             after = [change valueForKey:CPKeyValueChangeNewKey];
-        if (before !== after && ((before === nil && after !== nil) || ![before isEqual:after]))
-            [self makeDirtyProperty:[aContext localName]];
+
+
+        if (before === nil)
+            if (after !== nil)
+                [self makeDirtyProperty:[aContext localName]];
+        else
+            if (before !== after && ((before === nil && after !== nil) || ![before isEqual:after]))
+                [self makeDirtyProperty:[aContext localName]];
+
         [_deferredProperties removeObject:aContext];
     }
 }
@@ -466,6 +474,22 @@ var WLRemoteObjectByClassByPk = {},
         [self setValue:value forKey:localName];
         [_deferredProperties removeObject:aProperty];
     }
+}
+
+- (id)asJSObject
+{
+    var r = {},
+        property = nil,
+        objectEnumerator = [_remoteProperties objectEnumerator];
+    while (property = [objectEnumerator nextObject])
+    {
+        var value = [self valueForKey:[property localName]];
+        if ([property valueTransformer] && [[[property valueTransformer] class] allowsReverseTransformation])
+            value = [[property valueTransformer] reverseTransformedValue:value];
+        r[[property remoteName]] = value;
+    }
+
+    return r;
 }
 
 - (id)asPostJSObject
@@ -625,6 +649,8 @@ var WLRemoteObjectByClassByPk = {},
         // Assume the action will succeed or retry until it does.
         [self setLastSyncedAt:[CPDate date]];
         [anAction setPath:[self remotePath] + "/" + pk];
+        [self setPk:nil];
+        [self remoteObjectWillBeDeleted];
     }
     else if ([anAction type] == WLRemoteActionPutType)
     {
@@ -684,6 +710,7 @@ var WLRemoteObjectByClassByPk = {},
     }
     else if ([anAction type] == WLRemoteActionDeleteType)
     {
+        [WLRemoteObject setDirtProof:YES];
         // The previous PK is now gone.
         [self setPk:nil];
 
@@ -696,6 +723,7 @@ var WLRemoteObjectByClassByPk = {},
         // considered dirty to ensure it gets sent with the creation.
         [self makeAllDirty];
 
+        [WLRemoteObject setDirtProof:NO];
         deleteAction = nil;
         [self remoteObjectWasDeleted];
     }
@@ -723,14 +751,20 @@ var WLRemoteObjectByClassByPk = {},
 
 - (void)remoteObjectWasLoaded
 {
-    if ([_delegate respondsToSelector:@selector(remoteObjectWasLoaded:)])
-        [_delegate remoteObjectWasLoaded:self];
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWasLoaded:)])
+        [[self delegate] remoteObjectWasLoaded:self];
+}
+
+- (void)remoteObjectWillBeDeleted
+{
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWillBeDeleted:)])
+        [[self delegate] remoteObjectWillBeDeleted:self];
 }
 
 - (void)remoteObjectWasDeleted
 {
-    if ([_delegate respondsToSelector:@selector(remoteObjectWasDeleted:)])
-        [_delegate remoteObjectWasDeleted:self];
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWasDeleted:)])
+        [[self delegate] remoteObjectWasDeleted:self];
 }
 
 @end
