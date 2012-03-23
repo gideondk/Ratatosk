@@ -597,6 +597,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
         CPLog.error("Action fired twice without reset.");
         return;
     }
+
     var request = [CPURLRequest requestWithURL:[self fullPath]];
 
     [request setHTTPMethod:WLRemoteActionTypeNames[type]];
@@ -791,7 +792,6 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
     if ([[WLRemoteLink sharedRemoteLink] authenticationToken])
     {
         urlAuthenticationToken = "?auth_token=" + [[WLRemoteLink sharedRemoteLink] authenticationToken];
-        console.log(urlAuthenticationToken);
     }
     var baseUrl = [[WLRemoteLink sharedRemoteLink] baseUrl];
     if (path)
