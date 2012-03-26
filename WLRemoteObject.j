@@ -87,6 +87,15 @@ var WLRemoteObjectByClassByPk = {},
     return WLRemoteObjectByClassByPk[self];
 }
 
++ (id)instanceOf:(class)aClass withPk:(id)pk
+{
+    if (pk === nil || pk === undefined)
+        return nil;
+
+    var objects = [aClass _objectsByPk];
+    return objects[pk];
+}
+
 + (id)instanceForPk:(id)pk
 {
     return [self instanceForPk:pk create:NO];
@@ -779,7 +788,7 @@ var WLRemoteObjectClassKey = "WLRemoteObjectClassKey",
 
 - (id)initWithCoder:(CPCoder)aCoder
 {
-    var clz = [aCoder decodeObjectForKey:WLRemoteObjectClassKey],
+    var clz = CPClassFromString([aCoder decodeObjectForKey:WLRemoteObjectClassKey]),
         pk = [aCoder decodeObjectForKey:WLRemoteObjectPkKey];
 
     return [WLRemoteObject instanceOf:clz withPk:pk];
@@ -789,7 +798,7 @@ var WLRemoteObjectClassKey = "WLRemoteObjectClassKey",
 {
     [super encodeWithCoder:aCoder];
 
-    [aCoder encodeObject:[self class] forKey:WLRemoteObjectClassKey];
+    [aCoder encodeObject:CPStringFromClass([self class]) forKey:WLRemoteObjectClassKey];
     [aCoder encodeObject:[self pk] forKey:WLRemoteObjectPkKey];
 }
 
