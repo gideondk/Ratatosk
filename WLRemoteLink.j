@@ -245,7 +245,8 @@ WLLoginActionDidFailNotification        = "WLLoginDidFailNotification";
         if (isAuthenticated)
             [self setIsAuthenticated:NO];
     }
-    else
+    // Don't retry on non-found
+    else if ([anAction statusCode] != 404)
     {
         [self setState:WLRemoteLinkStateRequestFailureError];
 
@@ -601,11 +602,11 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
     var request = [CPURLRequest requestWithURL:[self fullPath]];
 
     [request setHTTPMethod:WLRemoteActionTypeNames[type]];
-    [request setValue:@"application/json; charset=utf-8" forHTTPHeaderField:@"Accept"];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
 
     if (type == WLRemoteActionPostType || type == WLRemoteActionPutType)
     {
-        [request setValue:"application/json; charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+        [request setValue:"application/json" forHTTPHeaderField:@"Content-Type"];
 
         if (payload)
         {
@@ -640,7 +641,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
 
     var authorizationHeader = [[WLRemoteLink sharedRemoteLink] authorizationHeader];
     if (authorizationHeader)
-        [request setValue:authorizationHeader forHTTPHeaderField:@"Authorization"];
+        [request setValue:authorizationHeader forHTTPHeaderField:@"X-Authenticated"];
 
     connection = [CPURLConnection connectionWithRequest:request delegate:self];
     connection._isLocalFileConnection = false;
@@ -728,7 +729,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
     }
     else
     {
-        if (data != "" && data != "OK" && data != "{}")
+        if (data != "" && data != " " && data != "OK" && data != "{}")
         {
             result = (data ? [data objectFromJSON] : null);
 
@@ -739,8 +740,11 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
             }
             else
             {
-                CPLog.error("Unexpected data: "+ data);
-                error = 500;
+                if (type !== WLRemoteActionPutType)
+                {
+                    CPLog.error("Unexpected data: "+ data);
+                    error = 500;
+                }
             }
         }
     }
@@ -789,9 +793,12 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
 {
     urlAuthenticationToken = "";
 
-    if ([[WLRemoteLink sharedRemoteLink] authenticationToken])
+    if ([[WLRemoteLink sharedRemoteLink] useURLAuthentication])
     {
-        urlAuthenticationToken = "?auth_token=" + [[WLRemoteLink sharedRemoteLink] authenticationToken];
+        if (path.indexOf("?") == -1)
+            urlAuthenticationToken = "?auth_token=" + [[WLRemoteLink sharedRemoteLink] authenticationToken];
+        else
+            urlAuthenticationToken = "&auth_token=" + [[WLRemoteLink sharedRemoteLink] authenticationToken];
     }
     var baseUrl = [[WLRemoteLink sharedRemoteLink] baseUrl];
     if (path)

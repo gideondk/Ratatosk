@@ -159,6 +159,7 @@ var IsNumberRegExp = new RegExp('^\d+$');
         rObj = {};
     rObj[remoteName] = (IsNumberRegExp.test(pkString) ? parseInt(pkString) : pkString);
 
+    return [value asJSObject];
     return rObj;
 }
 

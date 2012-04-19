@@ -90,6 +90,15 @@ var WLRemoteObjectByClassByPk = {},
     return WLRemoteObjectByClassByPk[self];
 }
 
++ (id)instanceOf:(class)aClass withPk:(id)pk
+{
+    if (pk === nil || pk === undefined)
+        return nil;
+
+    var objects = [aClass _objectsByPk];
+    return objects[pk];
+}
+
 + (id)instanceForPk:(id)pk
 {
     return [self instanceForPk:pk create:NO];
@@ -249,6 +258,7 @@ var WLRemoteObjectByClassByPk = {},
                 remotePkName = [pkProperty remoteName];
             if (js[remotePkName] !== undefined)
             {
+
                 var value = js[remotePkName];
                 if ([pkProperty valueTransformer])
                     value = [[pkProperty valueTransformer] transformedValue:value];
@@ -345,8 +355,15 @@ var WLRemoteObjectByClassByPk = {},
     {
         var before = [change valueForKey:CPKeyValueChangeOldKey],
             after = [change valueForKey:CPKeyValueChangeNewKey];
-        if (before !== after && ((before === nil && after !== nil) || ![before isEqual:after]))
-            [self makeDirtyProperty:[aContext localName]];
+
+
+        if (before === nil)
+            if (after !== nil)
+                [self makeDirtyProperty:[aContext localName]];
+        else
+            if (before !== after && ((before === nil && after !== nil) || ![before isEqual:after]))
+                [self makeDirtyProperty:[aContext localName]];
+
         [_deferredProperties removeObject:aContext];
     }
 }
@@ -469,6 +486,22 @@ var WLRemoteObjectByClassByPk = {},
         [self setValue:value forKey:localName];
         [_deferredProperties removeObject:aProperty];
     }
+}
+
+- (id)asJSObject
+{
+    var r = {},
+        property = nil,
+        objectEnumerator = [_remoteProperties objectEnumerator];
+    while (property = [objectEnumerator nextObject])
+    {
+        var value = [self valueForKey:[property localName]];
+        if ([property valueTransformer] && [[[property valueTransformer] class] allowsReverseTransformation])
+            value = [[property valueTransformer] reverseTransformedValue:value];
+        r[[property remoteName]] = value;
+    }
+
+    return r;
 }
 
 - (id)asPostJSObject
@@ -628,6 +661,8 @@ var WLRemoteObjectByClassByPk = {},
         // Assume the action will succeed or retry until it does.
         [self setLastSyncedAt:[CPDate date]];
         [anAction setPath:[self remotePath] + "/" + pk];
+        [self setPk:nil];
+        [self remoteObjectWillBeDeleted];
     }
     else if ([anAction type] == WLRemoteActionPutType)
     {
@@ -687,6 +722,7 @@ var WLRemoteObjectByClassByPk = {},
     }
     else if ([anAction type] == WLRemoteActionDeleteType)
     {
+        [WLRemoteObject setDirtProof:YES];
         // The previous PK is now gone.
         //[self setPk:nil];
 
@@ -699,6 +735,7 @@ var WLRemoteObjectByClassByPk = {},
         // considered dirty to ensure it gets sent with the creation.
         //[self makeAllDirty];
 
+        [WLRemoteObject setDirtProof:NO];
         deleteAction = nil;
         [self remoteObjectWasDeleted];
     }
@@ -720,13 +757,26 @@ var WLRemoteObjectByClassByPk = {},
         [[self undoManager] enableUndoRegistration];
         [WLRemoteObject setDirtProof:NO];
         contentDownloadAction = nil;
+        [self remoteObjectWasLoaded];
     }
+}
+
+- (void)remoteObjectWasLoaded
+{
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWasLoaded:)])
+        [[self delegate] remoteObjectWasLoaded:self];
+}
+
+- (void)remoteObjectWillBeDeleted
+{
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWillBeDeleted:)])
+        [[self delegate] remoteObjectWillBeDeleted:self];
 }
 
 - (void)remoteObjectWasDeleted
 {
-    if ([_delegate respondsToSelector:@selector(remoteObjectWasDeleted:)])
-        [_delegate remoteObjectWasDeleted:self];
+    if ([[self delegate] respondsToSelector:@selector(remoteObjectWasDeleted:)])
+        [[self delegate] remoteObjectWasDeleted:self];
 }
 
 @end
@@ -741,7 +791,7 @@ var WLRemoteObjectClassKey = "WLRemoteObjectClassKey",
 
 - (id)initWithCoder:(CPCoder)aCoder
 {
-    var clz = [aCoder decodeObjectForKey:WLRemoteObjectClassKey],
+    var clz = CPClassFromString([aCoder decodeObjectForKey:WLRemoteObjectClassKey]),
         pk = [aCoder decodeObjectForKey:WLRemoteObjectPkKey];
 
     return [WLRemoteObject instanceOf:clz withPk:pk];
@@ -751,7 +801,7 @@ var WLRemoteObjectClassKey = "WLRemoteObjectClassKey",
 {
     [super encodeWithCoder:aCoder];
 
-    [aCoder encodeObject:[self class] forKey:WLRemoteObjectClassKey];
+    [aCoder encodeObject:CPStringFromClass([self class]) forKey:WLRemoteObjectClassKey];
     [aCoder encodeObject:[self pk] forKey:WLRemoteObjectPkKey];
 }
 
