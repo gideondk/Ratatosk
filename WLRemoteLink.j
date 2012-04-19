@@ -640,7 +640,7 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
 
     var authorizationHeader = [[WLRemoteLink sharedRemoteLink] authorizationHeader];
     if (authorizationHeader)
-        [request setValue:authorizationHeader forHTTPHeaderField:@"Authorization"];
+        [request setValue:authorizationHeader forHTTPHeaderField:@"X-Authenticated"];
 
     connection = [CPURLConnection connectionWithRequest:request delegate:self];
     connection._isLocalFileConnection = false;
