@@ -418,8 +418,8 @@ var WLRemoteObjectByClassByPk = {},
     while (property = [objectEnumerator nextObject])
     {
         var localName = [property localName];
-        if (_propertyLastModified[localName] && _propertyLastModified[localName] >= lastSyncedAt)
-            [r addObject:property];
+        //if (_propertyLastModified[localName] && _propertyLastModified[localName] >= lastSyncedAt)
+        [r addObject:property];
     }
     return r;
 }
