@@ -33,7 +33,7 @@
 
 var SharedWLRemoteLink      = nil,
     DefaultBaseUrl          = '/api/',
-    WLRemoteLinkRetryDelay  = 10; // in seconds
+    WLRemoteLinkRetryDelay  = 0.5; // in seconds
 
 WLRemoteLinkStateNormal                 = 0;
 WLRemoteLinkStateAuthenticationError    = 1;
