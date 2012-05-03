@@ -717,6 +717,7 @@ var WLRemoteObjectByClassByPk = {},
         [[self undoManager] enableUndoRegistration];
         [WLRemoteObject setDirtProof:NO];
         createAction = nil;
+        _isNew = NO;
         if ([_delegate respondsToSelector:@selector(remoteObjectWasCreated:)])
             [_delegate remoteObjectWasCreated:self];
     }
