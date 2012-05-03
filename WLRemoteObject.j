@@ -724,7 +724,7 @@ var WLRemoteObjectByClassByPk = {},
     {
         [WLRemoteObject setDirtProof:YES];
         // The previous PK is now gone.
-        //[self setPk:nil];
+        [self setPk:nil];
 
         // There is nothing to save anymore.
         [saveAction cancel];
