@@ -731,7 +731,18 @@ var WLRemoteActionTypeNames = ["GET", "POST", "PUT", "DELETE"],
     {
         if (data != "" && data != " " && data != "OK" && data != "{}")
         {
-            result = (data ? [data objectFromJSON] : null);
+
+
+            try
+            {
+                result = (data ? [data objectFromJSON] : null);
+            }
+            catch(err)
+            {
+                CPLog.error("Got invalid JSON in response.");
+                error = 500;
+            }
+
 
             if (typeof result !== 'undefined' && result !== null && typeof result["error"] !== 'undefined' && result["error"] == 401)
             {
